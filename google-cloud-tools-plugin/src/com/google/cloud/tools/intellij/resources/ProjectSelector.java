@@ -45,8 +45,10 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -90,6 +92,7 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
   private final boolean queryOnExpand;
   private JBPopup popup;
   private PopupPanel popupPanel;
+  private List<ProjectSelectionListener> projectSelectionListeners;
 
   public ProjectSelector() {
     this(false);
@@ -102,6 +105,7 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
     this.queryOnExpand = queryOnExpand;
     modelRoot = new DefaultMutableTreeNode("root");
     treeModel = new SelectorTreeModel(modelRoot);
+    projectSelectionListeners = new ArrayList<>();
 
     // synchronize selection between the treemodel and current text.
     treeModel.addTreeModelListener(new TreeModelListener() {
@@ -424,10 +428,11 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
               .getLastSelectedPathComponent();
           if (node != null) {
             if (node instanceof ResourceProjectModelItem) {
-              if (Strings.isNullOrEmpty(ProjectSelector.this.getText())
-                  || !ProjectSelector.this.getText()
-                  .equals(((ResourceProjectModelItem) node).getProjectId())) {
-                ProjectSelector.this.setText(((ResourceProjectModelItem) node).getProjectId());
+              String oldSelection = ProjectSelector.this.getText();
+              String newSelection = ((ResourceProjectModelItem) node).getProjectId();
+              if (Strings.isNullOrEmpty(oldSelection) || !oldSelection.equals(newSelection)) {
+                ProjectSelector.this.setText(newSelection);
+                onSelectionChanged(oldSelection, newSelection);
                 SwingUtilities.invokeLater(new Runnable() {
                   @Override
                   public void run() {
@@ -519,6 +524,12 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
     }
   }
 
+  private void onSelectionChanged(@Nullable String oldProjectId, @Nullable String newProjectId) {
+    for (ProjectSelectionListener listener : projectSelectionListeners) {
+      listener.selectionChanged(oldProjectId, newProjectId);
+    }
+  }
+
   @Override
   public void hidePopup() {
     if (isPopupVisible()) {
@@ -529,6 +540,14 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
   @Override
   public boolean isPopupVisible() {
     return popup != null && !popup.isDisposed() && popup.isVisible();
+  }
+
+  public void addProjectSelectionListener(ProjectSelectionListener projectSelectionListener) {
+    projectSelectionListeners.add(projectSelectionListener);
+  }
+
+  public void removeProjectSelectionListener(ProjectSelectionListener projectSelectionListener) {
+    projectSelectionListeners.remove(projectSelectionListener);
   }
 
   static class SelectorTreeModel extends DefaultTreeModel {
@@ -547,4 +566,9 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
       this.modelNeedsRefresh = modelNeedsRefresh;
     }
   }
+
+  public interface ProjectSelectionListener {
+    void selectionChanged(@Nullable String oldProjectId, @Nullable String newProjectId);
+  }
+
 }
