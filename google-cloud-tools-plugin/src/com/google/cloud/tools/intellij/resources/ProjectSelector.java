@@ -17,6 +17,7 @@
 package com.google.cloud.tools.intellij.resources;
 
 import com.google.api.client.repackaged.com.google.common.base.Strings;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.cloud.tools.intellij.login.CredentialedUser;
 import com.google.cloud.tools.intellij.login.IGoogleLoginCompletedCallback;
 import com.google.cloud.tools.intellij.login.IntellijGoogleLoginService;
@@ -428,11 +429,12 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
               .getLastSelectedPathComponent();
           if (node != null) {
             if (node instanceof ResourceProjectModelItem) {
+              ResourceProjectModelItem projectNode = (ResourceProjectModelItem) node;
               String oldSelection = ProjectSelector.this.getText();
-              String newSelection = ((ResourceProjectModelItem) node).getProjectId();
+              String newSelection = projectNode.getProject().getProjectId();
               if (Strings.isNullOrEmpty(oldSelection) || !oldSelection.equals(newSelection)) {
                 ProjectSelector.this.setText(newSelection);
-                onSelectionChanged(oldSelection, newSelection);
+                onSelectionChanged(projectNode);
                 SwingUtilities.invokeLater(new Runnable() {
                   @Override
                   public void run() {
@@ -524,9 +526,17 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
     }
   }
 
-  private void onSelectionChanged(@Nullable String oldProjectId, @Nullable String newProjectId) {
+  private void onSelectionChanged(ResourceProjectModelItem newSelection) {
+    CredentialedUser user = null;
+    if (newSelection.getParent() instanceof GoogleUserModelItem) {
+      user = ((GoogleUserModelItem) newSelection.getParent()).getCredentialedUser();
+    }
+    // TODO if not, is this an error state? how to proceed with a null user?
+
+    ProjectSelectionChangedEvent event
+        = new ProjectSelectionChangedEvent(newSelection.getProject(), user);
     for (ProjectSelectionListener listener : projectSelectionListeners) {
-      listener.selectionChanged(oldProjectId, newProjectId);
+      listener.selectionChanged(event);
     }
   }
 
@@ -568,7 +578,35 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
   }
 
   public interface ProjectSelectionListener {
-    void selectionChanged(@Nullable String oldProjectId, @Nullable String newProjectId);
+    void selectionChanged(ProjectSelectionChangedEvent event);
+  }
+
+  public class ProjectSelectionChangedEvent {
+    private Project selectedProject;
+    private CredentialedUser user;
+
+    public ProjectSelectionChangedEvent(
+        Project selectedProject, CredentialedUser user) {
+      this.selectedProject = selectedProject;
+      this.user = user;
+    }
+
+    public Project getSelectedProject() {
+      return selectedProject;
+    }
+
+    public void setSelectedProject(
+        Project selectedProject) {
+      this.selectedProject = selectedProject;
+    }
+
+    public CredentialedUser getUser() {
+      return user;
+    }
+
+    public void setUser(CredentialedUser user) {
+      this.user = user;
+    }
   }
 
 }

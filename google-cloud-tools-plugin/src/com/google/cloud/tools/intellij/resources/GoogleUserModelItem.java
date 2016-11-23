@@ -66,11 +66,8 @@ class GoogleUserModelItem extends DefaultMutableTreeNode {
     this.treeModel = treeModel;
     setNeedsSynchronizing();
 
-    cloudResourceManagerClient = new CloudResourceManager.Builder(
-        new NetHttpTransport(), new JacksonFactory(), user.getCredential())
-        .setApplicationName(
-            ServiceManager.getService(CloudToolsPluginInfoService.class).getUserAgent())
-        .build();
+    cloudResourceManagerClient
+        = GoogleApiClientFactory.getCloudResourceManagerClient(user.getCredential());
   }
 
   public CredentialedUser getCredentialedUser() {
@@ -165,9 +162,7 @@ class GoogleUserModelItem extends DefaultMutableTreeNode {
         }
         for (Project pantheonProject : allProjects) {
           if (!Strings.isNullOrEmpty(pantheonProject.getProjectId())) {
-            result.add(new ResourceProjectModelItem(pantheonProject.getName(),
-                pantheonProject.getProjectId(),
-                pantheonProject.getProjectNumber()));
+            result.add(new ResourceProjectModelItem(pantheonProject));
           }
         }
       }
