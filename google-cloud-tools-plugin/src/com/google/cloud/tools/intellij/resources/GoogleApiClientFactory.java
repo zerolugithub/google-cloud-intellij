@@ -38,6 +38,8 @@ public class GoogleApiClientFactory {
   private static HttpTransport httpTransport = new NetHttpTransport();
   private static JsonFactory jsonFactory = new JacksonFactory();
 
+  // TODO are the clients threadsafe? if so, cache them per user?
+
   /**
    * Creates a new instance of a {@link CloudResourceManager} client
    * @param httpRequestInitializer optional HttpRequestInitializer

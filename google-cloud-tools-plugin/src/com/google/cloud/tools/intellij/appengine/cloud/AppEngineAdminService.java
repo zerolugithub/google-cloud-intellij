@@ -18,6 +18,8 @@ package com.google.cloud.tools.intellij.appengine.cloud;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.appengine.v1.model.Application;
+import com.google.api.services.appengine.v1.model.Location;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import com.intellij.openapi.components.ServiceManager;
 
@@ -25,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.util.List;
 
 public abstract class AppEngineAdminService {
 
@@ -35,4 +38,11 @@ public abstract class AppEngineAdminService {
   @Nullable
   public abstract Application getApplicationForProjectId(@NotNull String projectId,
       @NotNull Credential credential) throws IOException;
+
+  public abstract ListenableFuture<Application> createApplicationForProjectId(@NotNull final
+      Application application, @NotNull String projectId, @NotNull final Credential credential)
+      throws IOException;
+
+  public abstract List<Location> getAllAppEngineRegions(Credential credential) throws IOException;
+
 }

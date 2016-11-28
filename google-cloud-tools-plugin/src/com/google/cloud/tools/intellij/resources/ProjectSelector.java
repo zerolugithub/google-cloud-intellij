@@ -595,18 +595,10 @@ public class ProjectSelector extends CustomizableComboBox implements Customizabl
       return selectedProject;
     }
 
-    public void setSelectedProject(
-        Project selectedProject) {
-      this.selectedProject = selectedProject;
-    }
-
     public CredentialedUser getUser() {
       return user;
     }
 
-    public void setUser(CredentialedUser user) {
-      this.user = user;
-    }
   }
 
 }

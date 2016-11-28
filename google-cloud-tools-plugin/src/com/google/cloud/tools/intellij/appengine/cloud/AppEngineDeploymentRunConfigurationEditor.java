@@ -265,13 +265,14 @@ public class AppEngineDeploymentRunConfigurationEditor extends
               AppEngineAdminService.getInstance().getApplicationForProjectId(
                   event.getSelectedProject().getProjectId(), event.getUser().getCredential());
 
-          // TODO replace with bundle messages
           if (application != null) {
-            regionLabel.setText("Fetched an application for this project. " + application.getLocationId());
+            regionLabel.setText(application.getLocationId());
           } else {
             regionLabel.setText("Application not found. Click here to create one");
+            // TODO add link listener, implement region selection dialog
           }
         } catch (IOException e) {
+          // TODO replace with bundle message
           regionLabel.setText("IOException while fetching application");
         }
       }
