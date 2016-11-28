@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.intellij.appengine.cloud;
 
+import com.google.api.services.appengine.v1.model.Application;
 import com.google.cloud.tools.intellij.appengine.cloud.AppEngineDeploymentConfiguration.ConfigType;
 import com.google.cloud.tools.intellij.appengine.cloud.FileConfirmationDialog.DialogType;
 import com.google.cloud.tools.intellij.appengine.cloud.SelectConfigDestinationFolderDialog.ConfigFileType;
@@ -24,6 +25,8 @@ import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkService;
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkValidationResult;
 import com.google.cloud.tools.intellij.login.CredentialedUser;
 import com.google.cloud.tools.intellij.resources.ProjectSelector;
+import com.google.cloud.tools.intellij.resources.ProjectSelector.ProjectSelectionChangedEvent;
+import com.google.cloud.tools.intellij.resources.ProjectSelector.ProjectSelectionListener;
 import com.google.cloud.tools.intellij.ui.BrowserOpeningHyperLinkListener;
 import com.google.cloud.tools.intellij.ui.PlaceholderTextField;
 import com.google.cloud.tools.intellij.util.GctBundle;
@@ -104,6 +107,7 @@ public class AppEngineDeploymentRunConfigurationEditor extends
   private JCheckBox stopPreviousVersionCheckbox;
   private JLabel stopPreviousVersionLabel;
   private JTextPane promoteInfoLabel;
+  private JLabel regionLabel;
 
   private DeploymentSource deploymentSource;
   private AppEngineEnvironment environment;
@@ -252,6 +256,26 @@ public class AppEngineDeploymentRunConfigurationEditor extends
     appEngineFlexConfigPanel.setVisible(
         environment == AppEngineEnvironment.APP_ENGINE_FLEX
             && !AppEngineProjectService.getInstance().isFlexCompat(project, deploymentSource));
+
+    projectSelector.addProjectSelectionListener(new ProjectSelectionListener() {
+      @Override
+      public void selectionChanged(ProjectSelectionChangedEvent event) {
+        try {
+          Application application =
+              AppEngineAdminService.getInstance().getApplicationForProjectId(
+                  event.getSelectedProject().getProjectId(), event.getUser().getCredential());
+
+          // TODO replace with bundle messages
+          if (application != null) {
+            regionLabel.setText("Fetched an application for this project. " + application.getLocationId());
+          } else {
+            regionLabel.setText("Application not found. Click here to create one");
+          }
+        } catch (IOException e) {
+          regionLabel.setText("IOException while fetching application");
+        }
+      }
+    });
   }
 
   @Override
