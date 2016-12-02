@@ -16,6 +16,7 @@
 
 package com.google.cloud.tools.intellij.appengine.cloud;
 
+import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.appengine.v1.model.Application;
 import com.google.cloud.tools.intellij.appengine.cloud.AppEngineDeploymentConfiguration.ConfigType;
 import com.google.cloud.tools.intellij.appengine.cloud.FileConfirmationDialog.DialogType;
@@ -80,6 +81,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.event.DocumentEvent;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 
 /**
  * Editor for an App Engine Deployment runtime configuration.
@@ -107,7 +110,8 @@ public class AppEngineDeploymentRunConfigurationEditor extends
   private JCheckBox stopPreviousVersionCheckbox;
   private JLabel stopPreviousVersionLabel;
   private JTextPane promoteInfoLabel;
-  private JLabel regionLabel;
+  private JTextPane regionLabel;
+  private HyperlinkListener createApplicationListener;
 
   private DeploymentSource deploymentSource;
   private AppEngineEnvironment environment;
@@ -120,6 +124,7 @@ public class AppEngineDeploymentRunConfigurationEditor extends
       "<a href='https://console.cloud.google.com/appengine/versions'>";
   private static final String COST_WARNING_HREF_OPEN_TAG =
       "<a href='https://cloud.google.com/appengine/pricing'>";
+  private static final String CREATE_APPLICATION_HREF_OPEN_TAG = "<a href='#'>";
 
   public static final String DEFAULT_APP_YAML_DIR = "/src/main/appengine";
   public static final String DEFAULT_DOCKERFILE_DIR = "/src/main/docker";
@@ -136,6 +141,8 @@ public class AppEngineDeploymentRunConfigurationEditor extends
       final AppEngineHelper appEngineHelper) {
     this.project = project;
     this.deploymentSource = deploymentSource;
+
+    createApplicationListener = new CreateApplicationLinkListener();
 
     versionIdField.setPlaceholderText(GctBundle.message("appengine.flex.version.placeholder.text"));
     promoteCheckbox.setSelected(PROMOTE_DEFAULT);
@@ -257,26 +264,42 @@ public class AppEngineDeploymentRunConfigurationEditor extends
         environment == AppEngineEnvironment.APP_ENGINE_FLEX
             && !AppEngineProjectService.getInstance().isFlexCompat(project, deploymentSource));
 
+    // TODO updateRegionField() with any persisted configs
+
     projectSelector.addProjectSelectionListener(new ProjectSelectionListener() {
       @Override
       public void selectionChanged(ProjectSelectionChangedEvent event) {
-        try {
-          Application application =
-              AppEngineAdminService.getInstance().getApplicationForProjectId(
-                  event.getSelectedProject().getProjectId(), event.getUser().getCredential());
-
-          if (application != null) {
-            regionLabel.setText(application.getLocationId());
-          } else {
-            regionLabel.setText("Application not found. Click here to create one");
-            // TODO add link listener, implement region selection dialog
-          }
-        } catch (IOException e) {
-          // TODO replace with bundle message
-          regionLabel.setText("IOException while fetching application");
-        }
+        updateRegionField(event.getSelectedProject().getProjectId(), event.getUser().getCredential());
       }
     });
+  }
+
+  private void updateRegionField(String projectId, Credential credential) {
+    try {
+      Application application =
+          AppEngineAdminService.getInstance().getApplicationForProjectId(projectId, credential);
+
+      // Prevent duplicate listeners. If this listener was never added, this is a no-op.
+      regionLabel.removeHyperlinkListener(createApplicationListener);
+
+      if (application != null) {
+        setRegionLabelText(application.getLocationId());
+      } else {
+        setRegionLabelText(GctBundle.message("appengine.application.not.exist") + " "
+            + GctBundle.message("appengine.application.create",
+            CREATE_APPLICATION_HREF_OPEN_TAG, LABEL_HREF_CLOSE_TAG));
+
+        regionLabel.addHyperlinkListener(createApplicationListener);
+
+        // TODO should also mark the configuration as invalid?
+      }
+    } catch (IOException e) {
+      setRegionLabelText(GctBundle.message("appengine.application.region.fetch.error"));
+    }
+  }
+
+  private void setRegionLabelText(String text) {
+    regionLabel.setText(LABEL_OPEN_TAG + text + LABEL_CLOSE_TAG);
   }
 
   @Override
@@ -569,6 +592,13 @@ public class AppEngineDeploymentRunConfigurationEditor extends
       if (!isPromoteSelected) {
         stopPreviousVersionCheckbox.setSelected(false);
       }
+    }
+  }
+
+  private class CreateApplicationLinkListener implements HyperlinkListener {
+    @Override
+    public void hyperlinkUpdate(HyperlinkEvent e) {
+      // TODO open region selection dialog
     }
   }
 }
