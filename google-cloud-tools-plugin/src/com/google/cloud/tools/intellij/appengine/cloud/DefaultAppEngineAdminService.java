@@ -25,6 +25,7 @@ import com.google.api.services.appengine.v1.model.Location;
 import com.google.api.services.appengine.v1.model.Operation;
 import com.google.cloud.tools.intellij.resources.GoogleApiClientFactory;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +40,12 @@ import java.util.concurrent.Executors;
 public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   private final static String APP_ENGINE_RESOURCE_WILDCARD = "-";
+
+  // arbitrary polling interval
+  private final long CREATE_APPLICATION_POLLING_INTERVAL_MS = 200;
+
+  private final static ListeningExecutorService executor =
+      MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
 
   @Override
   @Nullable
@@ -58,35 +65,33 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   @Override
   public ListenableFuture<Application> createApplicationForProjectId(@NotNull final Application
-      application, @NotNull final String projectId, @NotNull final Credential credential)
-      throws IOException {
+      application, @NotNull final String projectId, @NotNull final Credential credential) {
 
-    // TODO use an executor that's configured elsewhere
-    // TODO perhaps can overload this method call to optionally provide another executorService
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-
-    return MoreExecutors.listeningDecorator(executor).submit(new Callable<Application>() {
+    return executor.submit(new Callable<Application>() {
       @Override
       public Application call() throws Exception {
         Operation operation = GoogleApiClientFactory.getAppEngineApiClient(credential)
             .apps().create(application).execute();
 
         boolean done = false;
-        do {
-          // TODO handle interrupt? Is there a recommended polling interval?
-          Thread.sleep(500);
+        while (!done) {
+          // TODO handle interrupt?
+          Thread.sleep(CREATE_APPLICATION_POLLING_INTERVAL_MS);
           operation = getOperation(projectId, operation.getName(), credential);
           if (operation.getDone() != null) {
             done = operation.getDone();
           }
-        } while (!done);
+        }
 
         if (operation.getError() != null) {
-          // TODO throw exception
-          return null;
+          throw new IOException(operation.getError().getMessage());
         } else {
-          // TODO parse response and return Application
-          return null;
+          // TODO assert types in the response metadata
+          // operation.getResponse().get("@type")
+
+          Application application = new Application();
+          application.putAll(operation.getResponse());
+          return application;
         }
       }
 

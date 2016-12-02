@@ -39,9 +39,8 @@ public abstract class AppEngineAdminService {
   public abstract Application getApplicationForProjectId(@NotNull String projectId,
       @NotNull Credential credential) throws IOException;
 
-  public abstract ListenableFuture<Application> createApplicationForProjectId(@NotNull final
-      Application application, @NotNull String projectId, @NotNull final Credential credential)
-      throws IOException;
+  public abstract ListenableFuture<Application> createApplicationForProjectId(
+      @NotNull Application application, @NotNull String projectId, @NotNull Credential credential);
 
   public abstract List<Location> getAllAppEngineRegions(Credential credential) throws IOException;
 
