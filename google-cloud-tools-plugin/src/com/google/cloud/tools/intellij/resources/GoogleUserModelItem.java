@@ -67,7 +67,7 @@ class GoogleUserModelItem extends DefaultMutableTreeNode {
     setNeedsSynchronizing();
 
     cloudResourceManagerClient
-        = GoogleApiClientFactory.getCloudResourceManagerClient(user.getCredential());
+        = GoogleApiClientFactory.getInstance().getCloudResourceManagerClient(user.getCredential());
   }
 
   public CredentialedUser getCredentialedUser() {

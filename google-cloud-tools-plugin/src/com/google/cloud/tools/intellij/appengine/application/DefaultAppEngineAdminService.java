@@ -41,7 +41,7 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
   public Application getApplicationForProjectId(@NotNull String projectId,
       @NotNull Credential credential) throws IOException {
     try {
-      return GoogleApiClientFactory.getAppEngineApiClient(credential)
+      return GoogleApiClientFactory.getInstance().getAppEngineApiClient(credential)
           .apps().get(projectId).execute();
     } catch (GoogleJsonResponseException e) {
       if (e.getStatusCode() == 404) {
@@ -59,7 +59,7 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
     Application arg = new Application();
     arg.setId(projectId);
     arg.setLocationId(locationId);
-    Operation operation = GoogleApiClientFactory.getAppEngineApiClient(credential)
+    Operation operation = GoogleApiClientFactory.getInstance().getAppEngineApiClient(credential)
         .apps().create(arg).execute();
 
     boolean done = false;
@@ -93,7 +93,7 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
     }
     String id = nameParts[nameParts.length - 1];
 
-    return GoogleApiClientFactory.getAppEngineApiClient(credential).apps()
+    return GoogleApiClientFactory.getInstance().getAppEngineApiClient(credential).apps()
         .operations().get(projectId, id).execute();
   }
 
@@ -112,7 +112,7 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   private ListLocationsResponse getAppEngineRegions(Credential credential, @Nullable String
       pageToken) throws IOException {
-     return GoogleApiClientFactory.getAppEngineApiClient(credential).apps().locations()
+     return GoogleApiClientFactory.getInstance().getAppEngineApiClient(credential).apps().locations()
          .list(APP_ENGINE_RESOURCE_WILDCARD)
          .setPageToken(pageToken)
          .execute();

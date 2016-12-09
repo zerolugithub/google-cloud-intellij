@@ -17,55 +17,34 @@
 package com.google.cloud.tools.intellij.resources;
 
 import com.google.api.client.http.HttpRequestInitializer;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson.JacksonFactory;
 import com.google.api.services.appengine.v1.Appengine;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
-import com.google.cloud.tools.intellij.CloudToolsPluginInfoService;
 
 import com.intellij.openapi.components.ServiceManager;
 
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Factory class for creating instances of various Google API clients. Creates instances of API
- * clients that share resources, where possible.
+ * Factory class for creating instances of Google API clients.
  */
-public class GoogleApiClientFactory {
+public abstract class GoogleApiClientFactory {
 
-  private static HttpTransport httpTransport = new NetHttpTransport();
-  private static JsonFactory jsonFactory = new JacksonFactory();
-
-  // TODO are the clients threadsafe? if so, cache them per user?
+  public static GoogleApiClientFactory getInstance() {
+    return ServiceManager.getService(GoogleApiClientFactory.class);
+  }
 
   /**
    * Creates a new instance of a {@link CloudResourceManager} client
    * @param httpRequestInitializer optional HttpRequestInitializer
    */
-  public static CloudResourceManager getCloudResourceManagerClient(@Nullable HttpRequestInitializer
-      httpRequestInitializer) {
-    return new CloudResourceManager.Builder(
-        httpTransport, jsonFactory, httpRequestInitializer)
-        .setApplicationName(getApplicationName())
-        .build();
-  }
+  public abstract CloudResourceManager getCloudResourceManagerClient(@Nullable HttpRequestInitializer
+      httpRequestInitializer);
 
   /**
    * Creates a new instance of a {@link Appengine} client
    * @param httpRequestInitializer optional HttpRequestInitializer
    */
-  public static Appengine getAppEngineApiClient(@Nullable HttpRequestInitializer
-      httpRequestInitializer) {
-    return new Appengine.Builder(
-        httpTransport, jsonFactory, httpRequestInitializer)
-        .setApplicationName(getApplicationName())
-        .build();
-  }
-
-  private static String getApplicationName() {
-    return ServiceManager.getService(CloudToolsPluginInfoService.class).getUserAgent();
-  }
+  public abstract Appengine getAppEngineApiClient(@Nullable HttpRequestInitializer
+      httpRequestInitializer);
 
 }
