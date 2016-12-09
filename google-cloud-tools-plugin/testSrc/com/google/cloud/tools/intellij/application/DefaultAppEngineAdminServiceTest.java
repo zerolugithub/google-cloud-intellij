@@ -50,8 +50,7 @@ import java.util.Map;
 
 public class DefaultAppEngineAdminServiceTest extends BasePluginTestCase {
 
-  @Mock
-  private GoogleApiClientFactory apiClientFactoryMock;
+  @Mock private GoogleApiClientFactory apiClientFactoryMock;
 
   private AppengineMock appengineClientMock;
 
@@ -108,14 +107,17 @@ public class DefaultAppEngineAdminServiceTest extends BasePluginTestCase {
     Application result = service.createApplication(locationId, projectId, mock(Credential.class));
 
     // ensure the service call was made with the correct args
-    verify(appengineClientMock.apps(), times(1)).create(argThat(new ArgumentMatcher<Application>() {
-      @Override
-      public boolean matches(Object argument) {
-        Application application = (Application) argument;
-        return application.getId().equals(projectId)
-            && application.getLocationId().equals(locationId);
-      }
-    }));
+    verify(appengineClientMock.apps(), times(1))
+        .create(
+            argThat(
+                new ArgumentMatcher<Application>() {
+                  @Override
+                  public boolean matches(Object argument) {
+                    Application application = (Application) argument;
+                    return application.getId().equals(projectId)
+                        && application.getLocationId().equals(locationId);
+                  }
+                }));
 
     assertEquals(projectId, result.getName());
     assertEquals(locationId, result.getLocationId());
@@ -123,16 +125,11 @@ public class DefaultAppEngineAdminServiceTest extends BasePluginTestCase {
 
   private class AppengineMock extends Appengine {
 
-    @Mock
-    private Appengine.Apps apps;
-    @Mock
-    private Appengine.Apps.Get appsGet;
-    @Mock
-    private Appengine.Apps.Create appsCreate;
-    @Mock
-    private Appengine.Apps.Operations appsOperations;
-    @Mock
-    private Appengine.Apps.Operations.Get appsOperationsGet;
+    @Mock private Appengine.Apps apps;
+    @Mock private Appengine.Apps.Get appsGet;
+    @Mock private Appengine.Apps.Create appsCreate;
+    @Mock private Appengine.Apps.Operations appsOperations;
+    @Mock private Appengine.Apps.Operations.Get appsOperationsGet;
 
     public AppengineMock() {
       super(mock(HttpTransport.class), mock(JsonFactory.class), null);
@@ -164,6 +161,5 @@ public class DefaultAppEngineAdminServiceTest extends BasePluginTestCase {
     public Apps.Operations.Get getAppsOperationsGetQuery() {
       return appsOperationsGet;
     }
-
   }
 }
