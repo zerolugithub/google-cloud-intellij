@@ -22,6 +22,7 @@ import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.appengine.v1.model.ListLocationsResponse;
 import com.google.api.services.appengine.v1.model.Location;
 import com.google.api.services.appengine.v1.model.Operation;
+import com.google.cloud.tools.intellij.appengine.cloud.AppEngineOperationFailedException;
 import com.google.cloud.tools.intellij.resources.GoogleApiClientFactory;
 
 import org.jetbrains.annotations.NotNull;
@@ -33,9 +34,7 @@ import java.util.List;
 public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   private final static String APP_ENGINE_RESOURCE_WILDCARD = "-";
-
-  // arbitrary polling interval
-  private final long CREATE_APPLICATION_POLLING_INTERVAL_MS = 500;
+  private final long CREATE_APPLICATION_POLLING_INTERVAL_MS = 1000;
 
   @Override
   @Nullable
@@ -46,16 +45,16 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
           .apps().get(projectId).execute();
     } catch (GoogleJsonResponseException e) {
       if (e.getStatusCode() == 404) {
+        // the application does not exist
         return null;
       }
-      // TODO any other special cases we should handle?
       throw e;
     }
   }
 
   @Override
   public Application createApplication(@NotNull String locationId, @NotNull final String projectId,
-      @NotNull final Credential credential) throws IOException, InterruptedException {
+      @NotNull final Credential credential) throws IOException, AppEngineOperationFailedException {
 
     Application arg = new Application();
     arg.setId(projectId);
@@ -65,7 +64,11 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
     boolean done = false;
     while (!done) {
-      Thread.sleep(CREATE_APPLICATION_POLLING_INTERVAL_MS);
+      try {
+        Thread.sleep(CREATE_APPLICATION_POLLING_INTERVAL_MS);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
       operation = getOperation(projectId, operation.getName(), credential);
       if (operation.getDone() != null) {
         done = operation.getDone();
@@ -73,12 +76,8 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
     }
 
     if (operation.getError() != null) {
-      // TODO use a different exception type
-      throw new IOException(operation.getError().getMessage());
+      throw new AppEngineOperationFailedException(operation.getError());
     } else {
-      // TODO assert types in the response metadata
-      // operation.getResponse().get("@type")
-
       Application result = new Application();
       result.putAll(operation.getResponse());
       return result;
@@ -87,7 +86,7 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   private Operation getOperation(@NotNull String projectId, @NotNull String operationName,
       @NotNull Credential credential) throws IOException {
-    // Parse the operation ID from the operation name string
+    // The operation ID is the final slash-separated component of the operation name.
     String[] nameParts = operationName.split("/");
     if (nameParts.length < 1) {
       throw new IllegalArgumentException("Operation name " + operationName + " is malformatted");
@@ -99,13 +98,24 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
   }
 
   @Override
-  public List<Location> getAllAppEngineRegions(Credential credential) throws IOException {
-    ListLocationsResponse response = GoogleApiClientFactory.getAppEngineApiClient(credential)
-        .apps().locations().list(APP_ENGINE_RESOURCE_WILDCARD).execute();
+  public List<Location> getAllAppEngineLocations(Credential credential) throws IOException {
+    ListLocationsResponse response = getAppEngineRegions(credential, null);
+    List<Location> locations = response.getLocations();
 
-    // TODO paging
+    while (response.getNextPageToken() != null) {
+      response = getAppEngineRegions(credential, response.getNextPageToken());
+      locations.addAll(response.getLocations());
+    }
 
-    return response.getLocations();
+    return locations;
+  }
+
+  private ListLocationsResponse getAppEngineRegions(Credential credential, @Nullable String
+      pageToken) throws IOException {
+     return GoogleApiClientFactory.getAppEngineApiClient(credential).apps().locations()
+         .list(APP_ENGINE_RESOURCE_WILDCARD)
+         .setPageToken(pageToken)
+         .execute();
   }
 
 }

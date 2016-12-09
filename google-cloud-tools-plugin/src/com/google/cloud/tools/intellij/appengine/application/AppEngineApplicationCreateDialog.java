@@ -19,6 +19,7 @@ package com.google.cloud.tools.intellij.appengine.application;
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.appengine.v1.model.Location;
+import com.google.cloud.tools.intellij.appengine.cloud.AppEngineOperationFailedException;
 import com.google.cloud.tools.intellij.util.GctBundle;
 
 import com.intellij.openapi.application.ApplicationManager;
@@ -88,8 +89,8 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
         } catch (IOException e) {
           setStatusMessage(GctBundle.message("appengine.application.create.error"), true);
           return;
-        } catch (InterruptedException e) {
-          // TODO different error message saying that the operation is probably in progress?
+        } catch (AppEngineOperationFailedException e) {
+          // TODO status message that the operation failed
           return;
         }
 
@@ -125,7 +126,7 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
   private void refreshLocationsSelector() {
     List<Location> appEngineRegions;
     try {
-      appEngineRegions = AppEngineAdminService.getInstance().getAllAppEngineRegions(userCredential);
+      appEngineRegions = AppEngineAdminService.getInstance().getAllAppEngineLocations(userCredential);
     } catch (IOException e) {
       setStatusMessage(GctBundle.message("appengine.application.region.list.fetch.error"), true);
       return;
