@@ -57,12 +57,12 @@ public class CloudDebugRunConfiguration extends LocatableConfigurationBase
     implements ModuleRunConfiguration, RunConfigurationWithSuppressedDefaultDebugAction,
     RunConfigurationWithSuppressedDefaultRunAction, RemoteRunProfile {
 
-  private static final String NAME = "Cloud Debug Configuration";
+  private static final String NAME = "Google Stackdriver Debug";
   private static final String PROJECT_NAME_TAG = "CloudProjectName";
   private String cloudProjectName;
   private volatile CloudDebugProcessState processState = null;
 
-  protected CloudDebugRunConfiguration(Project project, @NotNull ConfigurationFactory factory) {
+  public CloudDebugRunConfiguration(Project project, @NotNull ConfigurationFactory factory) {
     super(project, factory, NAME);
     CloudDebugProcessWatcher.getInstance().ensureWatcher();
   }

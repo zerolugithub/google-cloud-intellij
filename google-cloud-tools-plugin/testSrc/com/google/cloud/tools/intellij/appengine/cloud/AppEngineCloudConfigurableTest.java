@@ -16,11 +16,15 @@
 
 package com.google.cloud.tools.intellij.appengine.cloud;
 
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.api.client.repackaged.javax.annotation.concurrent.Immutable;
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkPanel;
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkService;
+import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkValidationResult;
+import com.google.common.collect.ImmutableSet;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.options.ConfigurationException;
@@ -38,7 +42,8 @@ public class AppEngineCloudConfigurableTest extends PlatformTestCase {
   private TextFieldWithBrowseButton cloudSdkDirectoryField;
 
   private static final Path CLOUD_SDK_DIR_PATH = Paths.get("a", "b", "c", "gcloud-sdk");
-  private static final String INVALID_SDK_DIR_WARNING = "No Cloud SDK was found in this directory.";
+  private static final String INVALID_SDK_DIR_WARNING =
+      "No Cloud SDK was found in the specified directory.";
 
   @Override
   public void setUp() throws Exception {
@@ -64,6 +69,8 @@ public class AppEngineCloudConfigurableTest extends PlatformTestCase {
   }
 
   public void testApply_invalidSdk() throws ConfigurationException {
+    when(cloudSdkService.validateCloudSdk(anyString()))
+        .thenReturn(ImmutableSet.of(CloudSdkValidationResult.CLOUD_SDK_NOT_FOUND));
     initCloudConfigurable();
     cloudSdkDirectoryField.setText("/some/invalid/path");
 

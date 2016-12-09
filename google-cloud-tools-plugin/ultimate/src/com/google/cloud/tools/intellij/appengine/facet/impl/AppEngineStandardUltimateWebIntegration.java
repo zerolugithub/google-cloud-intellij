@@ -17,7 +17,7 @@
 package com.google.cloud.tools.intellij.appengine.facet.impl;
 
 import com.google.cloud.tools.intellij.appengine.facet.AppEngineStandardFacet;
-import com.google.cloud.tools.intellij.appengine.facet.AppEngineWebIntegration;
+import com.google.cloud.tools.intellij.appengine.facet.AppEngineStandardWebIntegration;
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkService;
 import com.google.cloud.tools.intellij.appengine.server.instance.AppEngineServerModel;
 import com.google.cloud.tools.intellij.appengine.server.integration.AppEngineServerIntegration;
@@ -28,11 +28,13 @@ import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.configurations.ModuleRunConfiguration;
 import com.intellij.facet.FacetManager;
 import com.intellij.framework.addSupport.FrameworkSupportInModuleProvider.FrameworkDependency;
+import com.intellij.ide.util.frameworkSupport.FrameworkRole;
 import com.intellij.ide.util.frameworkSupport.FrameworkSupportModel;
 import com.intellij.javaee.JavaeePersistenceDescriptorsConstants;
 import com.intellij.javaee.appServerIntegrations.ApplicationServer;
 import com.intellij.javaee.artifact.JavaeeArtifactUtil;
 import com.intellij.javaee.facet.JavaeeFrameworkSupportInfoCollector;
+import com.intellij.javaee.framework.JavaeeProjectCategory;
 import com.intellij.javaee.oss.server.JavaeePersistentData;
 import com.intellij.javaee.run.configuration.CommonModel;
 import com.intellij.javaee.run.configuration.J2EEConfigurationFactory;
@@ -62,7 +64,10 @@ import java.util.List;
 /**
  * @author nik
  */
-public class AppEngineUltimateWebIntegration extends AppEngineWebIntegration {
+public class AppEngineStandardUltimateWebIntegration extends AppEngineStandardWebIntegration {
+
+  private static final FrameworkRole JAVA_PROJECT_ROLE = new FrameworkRole("JAVA_MODULE");
+  private static final FrameworkRole JAVA_EE_PROJECT_ROLE = JavaeeProjectCategory.ROLE;
 
   @NotNull
   @Override
@@ -106,7 +111,13 @@ public class AppEngineUltimateWebIntegration extends AppEngineWebIntegration {
     }
   }
 
-  public void setupRunConfiguration(Artifact artifact, @NotNull Project project,
+  public void setupRunConfigurations(Artifact artifact, @NotNull Project project,
+      ModuleRunConfiguration existingConfiguration) {
+    super.setupRunConfigurations(artifact, project, existingConfiguration);
+    setupLocalDevRunConfiguration(artifact, project, existingConfiguration);
+  }
+
+  private void setupLocalDevRunConfiguration(Artifact artifact, @NotNull Project project,
       ModuleRunConfiguration existingConfiguration) {
     final ApplicationServer appServer = getOrCreateAppServer();
     if (appServer != null) {
@@ -184,5 +195,17 @@ public class AppEngineUltimateWebIntegration extends AppEngineWebIntegration {
   @NotNull
   public List<FrameworkDependency> getAppEngineFrameworkDependencies() {
     return Collections.singletonList(FrameworkDependency.required("web"));
+  }
+
+  @Nullable
+  @Override
+  public String getUnderlyingFrameworkTypeId() {
+    return WebFacet.ID.toString();
+  }
+
+  @NotNull
+  @Override
+  public FrameworkRole[] getFrameworkRoles() {
+    return new FrameworkRole[] { JAVA_PROJECT_ROLE, JAVA_EE_PROJECT_ROLE };
   }
 }

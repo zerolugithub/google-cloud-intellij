@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.intellij.execution.configurations.RuntimeConfigurationError;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.remoteServer.RemoteServerConfigurable;
 
 import org.jetbrains.annotations.Nls;
@@ -92,14 +93,16 @@ public class AppEngineCloudConfigurable extends RemoteServerConfigurable impleme
    */
   @Override
   public void apply() throws ConfigurationException {
-    CloudSdkService sdkService = CloudSdkService.getInstance();
+    String message = cloudSdkPanel.buildSdkMessage(cloudSdkPanel.getCloudSdkDirectoryText(),
+        false /*htmlEnabled*/);
 
-    if (!sdkService.isValidCloudSdk(cloudSdkPanel.getCloudSdkDirectoryText())) {
-      throw new RuntimeConfigurationError(
-          GctBundle.message("appengine.cloudsdk.location.invalid.message"));
+    if (!StringUtil.isEmpty(message)) {
+      throw new RuntimeConfigurationError(message);
     }
-
-    sdkService.setSdkHomePath(cloudSdkPanel.getCloudSdkDirectoryText());
+    
+    if (cloudSdkPanel != null) {
+      cloudSdkPanel.apply();
+    }
   }
 
   @Override

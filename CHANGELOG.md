@@ -2,10 +2,22 @@
 All notable changes to this project will be documented in this file.
 ## [unreleased]
 
+## [16.11.6]
+
+### Added
+- Expanded Google Cloud Tools menu item with various action shortcuts. ([#1061](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/1061)).
+- Check for minimum support Cloud SDK version. ([#1051](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/1051)).
+- Automatically create all relevant run configuration for App Engine Standard apps. ([#1063](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/1063)).
+- App Engine framework is now a child of Web framework in the new project wizard. ([#1065](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/1065)).
+
+### Fixed
+- Unique deployment sources in application server deployment panel now appear as separate line items. ([#821](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/821)).
+- Validation of invalid Cloud SDK paths on Windows. ([#1091](https://github.com/GoogleCloudPlatform/google-cloud-intellij/issues/1091)). 
+
 ## [16.10.5]
 
 IMPORTANT: 
-This plugin requires the use of Cloud SDK v 131.0.0 for correct execution of the local
+This plugin requires the use of Cloud SDK v 133.0.0 for correct execution of the local
 development server with the latest Java 8 SDK. Please run 'gcloud components update' from your 
 shell to ensure you have the latest Cloud SDK release.
 

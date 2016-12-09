@@ -18,6 +18,7 @@ package com.google.cloud.tools.intellij.appengine.facet;
 
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkPanel;
 import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkService;
+import com.google.cloud.tools.intellij.appengine.sdk.CloudSdkValidationResult;
 import com.google.cloud.tools.intellij.appengine.util.AppEngineUtil;
 import com.google.cloud.tools.intellij.stats.UsageTrackerProvider;
 import com.google.cloud.tools.intellij.util.GctTracking;
@@ -91,7 +92,7 @@ public class AppEngineSupportProvider extends FrameworkSupportInModuleProvider {
 
   @Override
   public List<FrameworkDependency> getDependenciesFrameworkIds() {
-    return AppEngineWebIntegration.getInstance().getAppEngineFrameworkDependencies();
+    return AppEngineStandardWebIntegration.getInstance().getAppEngineFrameworkDependencies();
   }
 
   @Override
@@ -138,7 +139,7 @@ public class AppEngineSupportProvider extends FrameworkSupportInModuleProvider {
         = AppEngineStandardFacet.getFacetType();
     AppEngineStandardFacet appEngineStandardFacet = FacetManager.getInstance(module)
         .addFacet(facetType, facetType.getDefaultFacetName(), null);
-    AppEngineWebIntegration webIntegration = AppEngineWebIntegration.getInstance();
+    AppEngineStandardWebIntegration webIntegration = AppEngineStandardWebIntegration.getInstance();
     webIntegration.registerFrameworkInModel(frameworkSupportModel, appEngineStandardFacet);
     final Artifact webArtifact = findOrCreateWebArtifact(appEngineStandardFacet);
 
@@ -159,7 +160,7 @@ public class AppEngineSupportProvider extends FrameworkSupportInModuleProvider {
   @NotNull
   static Artifact findOrCreateWebArtifact(AppEngineStandardFacet appEngineStandardFacet) {
     Module module = appEngineStandardFacet.getModule();
-    ArtifactType webArtifactType = AppEngineWebIntegration.getInstance()
+    ArtifactType webArtifactType = AppEngineStandardWebIntegration.getInstance()
         .getAppEngineWebArtifactType();
     final Collection<Artifact> artifacts = ArtifactUtil.getArtifactsContainingModuleOutput(module);
     for (Artifact artifact : artifacts) {
@@ -186,7 +187,7 @@ public class AppEngineSupportProvider extends FrameworkSupportInModuleProvider {
             Library mavenLibrary = loadMavenLibrary(module, libraryToAdd);
             if (mavenLibrary != null) {
               rootModel.addLibraryEntry(mavenLibrary).setScope(libraryToAdd.getScope());
-              AppEngineWebIntegration.getInstance()
+              AppEngineStandardWebIntegration.getInstance()
                   .addLibraryToArtifact(mavenLibrary, webArtifact, module.getProject());
 
               UsageTrackerProvider.getInstance()
@@ -290,11 +291,19 @@ public class AppEngineSupportProvider extends FrameworkSupportInModuleProvider {
     public void addSupport(@NotNull Module module,
         @NotNull ModifiableRootModel rootModel,
         @NotNull ModifiableModelsProvider modifiableModelsProvider) {
-      sdkService.setSdkHomePath(cloudSdkPanel.getCloudSdkDirectoryText());
+      if (!sdkService.validateCloudSdk(cloudSdkPanel.getCloudSdkDirectoryText())
+          .contains(CloudSdkValidationResult.MALFORMED_PATH)) {
+        sdkService.setSdkHomePath(cloudSdkPanel.getCloudSdkDirectoryText());
+      }
 
       AppEngineSupportProvider.this
           .addSupport(module, rootModel, frameworkSupportModel,
               appEngineStandardLibraryPanel.getSelectedLibraries());
+
+      AppEngineStandardWebIntegration.getInstance().setupRunConfigurations(
+          AppEngineUtil.findOneAppEngineStandardArtifact(module),
+          rootModel.getProject(),
+          null /*existingConfiguration*/);
 
       // Called when creating a new App Engine module from the 'new project' or 'new module' wizards
       // or upon adding App Engine 'Framework Support' to an existing module.
