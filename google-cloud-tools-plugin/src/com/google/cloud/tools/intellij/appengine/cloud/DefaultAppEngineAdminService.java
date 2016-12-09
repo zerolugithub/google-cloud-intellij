@@ -18,34 +18,24 @@ package com.google.cloud.tools.intellij.appengine.cloud;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.services.appengine.v1.Appengine;
 import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.appengine.v1.model.ListLocationsResponse;
 import com.google.api.services.appengine.v1.model.Location;
 import com.google.api.services.appengine.v1.model.Operation;
 import com.google.cloud.tools.intellij.resources.GoogleApiClientFactory;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class DefaultAppEngineAdminService extends AppEngineAdminService {
 
   private final static String APP_ENGINE_RESOURCE_WILDCARD = "-";
 
   // arbitrary polling interval
-  private final long CREATE_APPLICATION_POLLING_INTERVAL_MS = 200;
-
-  private final static ListeningExecutorService executor =
-      MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
+  private final long CREATE_APPLICATION_POLLING_INTERVAL_MS = 500;
 
   @Override
   @Nullable
@@ -64,50 +54,56 @@ public class DefaultAppEngineAdminService extends AppEngineAdminService {
   }
 
   @Override
-  public ListenableFuture<Application> createApplicationForProjectId(@NotNull final Application
-      application, @NotNull final String projectId, @NotNull final Credential credential) {
+  public Application createApplication(@NotNull String locationId, @NotNull final String projectId,
+      @NotNull final Credential credential) throws IOException, InterruptedException {
 
-    return executor.submit(new Callable<Application>() {
-      @Override
-      public Application call() throws Exception {
-        Operation operation = GoogleApiClientFactory.getAppEngineApiClient(credential)
-            .apps().create(application).execute();
+    Application arg = new Application();
+    arg.setId(projectId);
+    arg.setLocationId(locationId);
+    Operation operation = GoogleApiClientFactory.getAppEngineApiClient(credential)
+        .apps().create(arg).execute();
 
-        boolean done = false;
-        while (!done) {
-          // TODO handle interrupt?
-          Thread.sleep(CREATE_APPLICATION_POLLING_INTERVAL_MS);
-          operation = getOperation(projectId, operation.getName(), credential);
-          if (operation.getDone() != null) {
-            done = operation.getDone();
-          }
-        }
-
-        if (operation.getError() != null) {
-          throw new IOException(operation.getError().getMessage());
-        } else {
-          // TODO assert types in the response metadata
-          // operation.getResponse().get("@type")
-
-          Application application = new Application();
-          application.putAll(operation.getResponse());
-          return application;
-        }
+    boolean done = false;
+    while (!done) {
+      Thread.sleep(CREATE_APPLICATION_POLLING_INTERVAL_MS);
+      operation = getOperation(projectId, operation.getName(), credential);
+      if (operation.getDone() != null) {
+        done = operation.getDone();
       }
+    }
 
-    });
+    if (operation.getError() != null) {
+      // TODO use a different exception type
+      throw new IOException(operation.getError().getMessage());
+    } else {
+      // TODO assert types in the response metadata
+      // operation.getResponse().get("@type")
+
+      Application result = new Application();
+      result.putAll(operation.getResponse());
+      return result;
+    }
   }
 
-  private Operation getOperation(String projectId, String operationName, Credential credential)
-      throws IOException {
+  private Operation getOperation(@NotNull String projectId, @NotNull String operationName,
+      @NotNull Credential credential) throws IOException {
+    // Parse the operation ID from the operation name string
+    String[] nameParts = operationName.split("/");
+    if (nameParts.length < 1) {
+      throw new IllegalArgumentException("Operation name " + operationName + " is malformatted");
+    }
+    String id = nameParts[nameParts.length - 1];
+
     return GoogleApiClientFactory.getAppEngineApiClient(credential).apps()
-        .operations().get(projectId, operationName).execute();
+        .operations().get(projectId, id).execute();
   }
 
   @Override
   public List<Location> getAllAppEngineRegions(Credential credential) throws IOException {
     ListLocationsResponse response = GoogleApiClientFactory.getAppEngineApiClient(credential)
         .apps().locations().list(APP_ENGINE_RESOURCE_WILDCARD).execute();
+
+    // TODO paging
 
     return response.getLocations();
   }
