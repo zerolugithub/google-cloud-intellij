@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cloud.tools.intellij.appengine.cloud;
+package com.google.cloud.tools.intellij.appengine.application;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.appengine.v1.model.Application;
