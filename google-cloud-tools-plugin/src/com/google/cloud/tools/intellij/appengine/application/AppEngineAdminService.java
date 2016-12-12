@@ -60,7 +60,7 @@ public abstract class AppEngineAdminService {
    * @param projectId the GCP project ID
    * @param credential the authenticated user Credential
    * @throws IOException if there was a transient error connecting to the API
-   * @throws AppEngineOperationFailedException
+   * @throws AppEngineOperationFailedException if the operation could not be completed
    */
   public abstract Application createApplication(@NotNull String locationId,
       @NotNull final String projectId, @NotNull final Credential credential)
