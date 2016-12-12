@@ -33,19 +33,26 @@ import java.awt.Component;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JTextPane;
+import javax.swing.ListCellRenderer;
 
 public class AppEngineApplicationCreateDialog extends DialogWrapper {
+
+  private final static String STANDARD_ENV_AVAILABLE_KEY = "standardEnvironmentAvailable";
+  private final static String FLEXIBLE_ENV_AVAILABLE_KEY = "flexibleEnvironmentAvailable";
+  private final static String DOCUMENTATION_URL
+      = "https://cloud.google.com/docs/geography-and-regions";
 
   private JPanel panel;
   private JTextPane instructionsTextPane;
   private JComboBox<Location> regionComboBox;
-  private JLabel regionText;
   private JTextPane statusPane;
 
   private Component parent;
@@ -65,14 +72,20 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
     init();
     setTitle(GctBundle.message("appengine.application.region.select"));
     refreshLocationsSelector();
+
+    regionComboBox.setRenderer(new AppEngineRegionComboBoxRenderer());
+    // TODO link handler
+    instructionsTextPane.setText(GctBundle.message("appengine.application.create.instructions")
+        + "<p>"
+        + GctBundle.message("appengine.application.create.documentation",
+        "<a href=\"" + DOCUMENTATION_URL + "\">", "</a>")
+        + "</p>");
   }
 
   @Override
   protected void doOKAction() {
     Location selectedLocation = (Location) regionComboBox.getSelectedItem();
-
-    // TODO see if bug will be fixed and can use selectedLocation.getLocationId() instead
-    final String locationId = selectedLocation.getLabels().get("cloud.googleapis.com/region");
+    final String locationId = getLocationId(selectedLocation);
 
     // show loading state
     setOKActionEnabled(false);
@@ -86,11 +99,15 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
         try {
           result = AppEngineAdminService.getInstance().createApplication(
               locationId, gcpProjectId, userCredential);
+
         } catch (IOException e) {
-          setStatusMessage(GctBundle.message("appengine.application.create.error"), true);
+          setStatusMessageAsync(GctBundle.message("appengine.application.create.error"), true);
+          setOKActionEnabled(true);
           return;
+
         } catch (AppEngineOperationFailedException e) {
-          // TODO status message that the operation failed
+          setStatusMessageAsync(e.getStatus().getMessage(), true);
+          setOKActionEnabled(true);
           return;
         }
 
@@ -117,10 +134,25 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
     applicationCreatedListeners.remove(listener);
   }
 
+  private void setStatusMessageAsync(final String message, final boolean isError) {
+    ApplicationManager.getApplication().invokeLater(new Runnable() {
+      @Override
+      public void run() {
+        setStatusMessage(message, isError);
+
+      }
+    });
+  }
+
   private void setStatusMessage(String message, boolean isError) {
     statusPane.setText(message);
     statusPane.setForeground(isError ? JBColor.red : JBColor.black);
     statusPane.setVisible(true);
+  }
+
+  private String getLocationId(Location location) {
+    // TODO(alexsloan) see if b/33458530 will be fixed and we can remove this
+    return location.getLabels().get("cloud.googleapis.com/region");
   }
 
   private void refreshLocationsSelector() {
@@ -143,8 +175,51 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
     return panel;
   }
 
-  interface ApplicationCreatedListener {
+  /**
+   * Interface that defines a listener that can be notified when new Applications are created.
+   */
+  public interface ApplicationCreatedListener {
     void onApplicationCreated(Application application);
+  }
+
+  // Renders the list items in the location dropdown menu
+  private class AppEngineRegionComboBoxRenderer extends JLabel implements
+      ListCellRenderer<Location> {
+
+    @Override
+    public Component getListCellRendererComponent(JList<? extends Location> list, Location value,
+        int index, boolean isSelected, boolean cellHasFocus) {
+
+      // TODO consider right-padding for tabular format
+      String displayText = getLocationId(value);
+
+      boolean isStandardSupported
+          = parseMetatadaBoolean(STANDARD_ENV_AVAILABLE_KEY, value.getMetadata());
+      boolean isFlexSupported
+          = parseMetatadaBoolean(FLEXIBLE_ENV_AVAILABLE_KEY, value.getMetadata());
+
+      if (isStandardSupported && isFlexSupported) {
+        displayText += " (supports standard and flexible)";
+      } else if (isStandardSupported) {
+        displayText += " (supports standard)";
+      } else if (isFlexSupported) {
+        displayText += " (supports flexible)";
+      }
+
+      setText(displayText);
+      return this;
+    }
+
+    private boolean parseMetatadaBoolean(String key, Map<String, Object> metadata) {
+      if (!metadata.containsKey(key)) {
+        return false;
+      }
+      Object val = metadata.get(key);
+      if (val == null || !(val instanceof Boolean)) {
+        return false;
+      }
+      return (Boolean) val;
+    }
   }
 
 }

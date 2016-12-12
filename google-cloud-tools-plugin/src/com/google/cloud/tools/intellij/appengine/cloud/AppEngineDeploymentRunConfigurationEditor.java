@@ -56,6 +56,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.remoteServer.configuration.deployment.DeploymentSource;
 import com.intellij.ui.DocumentAdapter;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.awt.RelativePoint;
 
 import org.apache.commons.lang.StringUtils;
@@ -122,8 +123,8 @@ public class AppEngineDeploymentRunConfigurationEditor extends
   private DeploymentSource deploymentSource;
   private AppEngineEnvironment environment;
 
-  private static final String LABEL_OPEN_TAG = "<html><font face='sans' size='-1'><i>";
-  private static final String LABEL_CLOSE_TAG = "</i></font></html>";
+  private static final String LABEL_OPEN_TAG = "<html><font face='sans' size='-1'>";
+  private static final String LABEL_CLOSE_TAG = "</font></html>";
   private static final String LABEL_HREF_CLOSE_TAG = "</a>";
 
   private static final String PROMOTE_INFO_HREF_OPEN_TAG =
@@ -287,23 +288,25 @@ public class AppEngineDeploymentRunConfigurationEditor extends
           AppEngineAdminService.getInstance().getApplicationForProjectId(projectId, credential);
 
       if (application != null) {
-        setRegionLabelText(application.getLocationId());
+        setRegionLabelText(application.getLocationId(), false);
       } else {
         createApplicationListener.setCredential(credential);
         createApplicationListener.setProjectId(projectId);
         setRegionLabelText(GctBundle.message("appengine.application.not.exist") + " "
             + GctBundle.message("appengine.application.create",
-            CREATE_APPLICATION_HREF_OPEN_TAG, LABEL_HREF_CLOSE_TAG));
+            CREATE_APPLICATION_HREF_OPEN_TAG, LABEL_HREF_CLOSE_TAG), true);
 
-        // TODO should also mark the configuration as invalid?
+        // TODO should the region (or the presence of the application be part of the Configuration?
+        //  TODO  - this might be necessary if we want to use this to mark the config as invalid
       }
     } catch (IOException e) {
-      setRegionLabelText(GctBundle.message("appengine.application.region.fetch.error"));
+      setRegionLabelText(GctBundle.message("appengine.application.region.fetch.error"), true);
     }
   }
 
-  private void setRegionLabelText(String text) {
+  private void setRegionLabelText(String text, boolean isErrorState) {
     regionLabel.setText(LABEL_OPEN_TAG + text + LABEL_CLOSE_TAG);
+    regionLabel.setForeground(isErrorState ? JBColor.red : JBColor.black);
   }
 
   @Override

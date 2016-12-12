@@ -22,6 +22,7 @@ import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.appengine.v1.model.ListLocationsResponse;
 import com.google.api.services.appengine.v1.model.Location;
 import com.google.api.services.appengine.v1.model.Operation;
+import com.google.api.services.appengine.v1.model.Status;
 import com.google.cloud.tools.intellij.appengine.cloud.AppEngineOperationFailedException;
 import com.google.cloud.tools.intellij.resources.GoogleApiClientFactory;
 
