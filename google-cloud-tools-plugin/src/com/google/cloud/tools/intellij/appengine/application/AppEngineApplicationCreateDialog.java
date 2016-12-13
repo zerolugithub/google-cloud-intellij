@@ -20,16 +20,19 @@ import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.appengine.v1.model.Location;
 import com.google.cloud.tools.intellij.appengine.cloud.AppEngineOperationFailedException;
+import com.google.cloud.tools.intellij.ui.BrowserOpeningHyperLinkListener;
 import com.google.cloud.tools.intellij.util.GctBundle;
 
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.ui.JBColor;
+import com.intellij.util.ui.JBFont;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.awt.Component;
+import java.awt.Font;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +52,8 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
   private final static String FLEXIBLE_ENV_AVAILABLE_KEY = "flexibleEnvironmentAvailable";
   private final static String DOCUMENTATION_URL
       = "https://cloud.google.com/docs/geography-and-regions";
+  private static final String HTML_OPEN_TAG = "<html><font face='sans' size='-1'>";
+  private static final String HTML_CLOSE_TAG = "</font></html>";
 
   private JPanel panel;
   private JTextPane instructionsTextPane;
@@ -74,12 +79,14 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
     refreshLocationsSelector();
 
     regionComboBox.setRenderer(new AppEngineRegionComboBoxRenderer());
-    // TODO link handler
-    instructionsTextPane.setText(GctBundle.message("appengine.application.create.instructions")
+
+    instructionsTextPane.addHyperlinkListener(new BrowserOpeningHyperLinkListener());
+    instructionsTextPane.setText(HTML_OPEN_TAG
+        + GctBundle.message("appengine.application.create.instructions")
         + "<p>"
         + GctBundle.message("appengine.application.create.documentation",
         "<a href=\"" + DOCUMENTATION_URL + "\">", "</a>")
-        + "</p>");
+        + "</p>" + HTML_CLOSE_TAG);
   }
 
   @Override
@@ -139,7 +146,6 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
       @Override
       public void run() {
         setStatusMessage(message, isError);
-
       }
     });
   }
@@ -151,8 +157,9 @@ public class AppEngineApplicationCreateDialog extends DialogWrapper {
   }
 
   private String getLocationId(Location location) {
-    // TODO(alexsloan) see if b/33458530 will be fixed and we can remove this
+    // TODO(alexsloan) when b/33458530 is addressed, we can just use location.getLocationId()
     return location.getLabels().get("cloud.googleapis.com/region");
+
   }
 
   private void refreshLocationsSelector() {
